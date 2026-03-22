@@ -171,6 +171,85 @@ describe("api-client", () => {
     });
   });
 
+  describe("uploadDataFile", () => {
+    it("sends POST FormData to data-file endpoint", async () => {
+      mockFetch.mockResolvedValueOnce(jsonResponse({ s3Key: "data-key-1" }));
+      const file = new File(["csv-data"], "budget.csv", { type: "text/csv" });
+      const result = await api.uploadDataFile("abc", file);
+      expect(result).toEqual({ s3Key: "data-key-1" });
+      const [url, opts] = mockFetch.mock.calls[0];
+      expect(url).toBe("http://localhost:4000/api/documents/abc/data-file");
+      expect(opts.method).toBe("POST");
+      expect(opts.body).toBeInstanceOf(FormData);
+      // Should NOT set Content-Type (browser sets boundary)
+      expect(opts.headers?.["Content-Type"]).toBeUndefined();
+    });
+  });
+
+  describe("uploadPriorDocument", () => {
+    it("sends POST FormData to prior-document endpoint", async () => {
+      mockFetch.mockResolvedValueOnce(jsonResponse({ s3Key: "prior-key-1" }));
+      const file = new File(["pdf-data"], "prior.pdf", { type: "application/pdf" });
+      const result = await api.uploadPriorDocument("abc", file);
+      expect(result).toEqual({ s3Key: "prior-key-1" });
+      const [url, opts] = mockFetch.mock.calls[0];
+      expect(url).toBe("http://localhost:4000/api/documents/abc/prior-document");
+      expect(opts.method).toBe("POST");
+      expect(opts.body).toBeInstanceOf(FormData);
+    });
+  });
+
+  describe("getPreview", () => {
+    it("fetches preview with document and sections", async () => {
+      const data = { document: { id: "abc" }, sections: [{ id: "s1" }] };
+      mockFetch.mockResolvedValueOnce(jsonResponse(data));
+      const result = await api.getPreview("abc");
+      expect(result.document).toEqual({ id: "abc" });
+      expect(result.sections).toHaveLength(1);
+      expect(mockFetch.mock.calls[0][0]).toBe(
+        "http://localhost:4000/api/documents/abc/preview"
+      );
+    });
+  });
+
+  describe("getReviews", () => {
+    it("fetches reviews for a document", async () => {
+      const data = { documentId: "abc", reviews: [{ id: "r1" }] };
+      mockFetch.mockResolvedValueOnce(jsonResponse(data));
+      const result = await api.getReviews("abc");
+      expect(result.reviews).toHaveLength(1);
+      expect(mockFetch.mock.calls[0][0]).toBe(
+        "http://localhost:4000/api/documents/abc/reviews"
+      );
+    });
+  });
+
+  describe("getTodo", () => {
+    it("fetches a single todo with messages", async () => {
+      const data = { todo: { id: "t1" }, messages: [{ id: "m1" }] };
+      mockFetch.mockResolvedValueOnce(jsonResponse(data));
+      const result = await api.getTodo("t1");
+      expect(result.todo).toEqual({ id: "t1" });
+      expect(result.messages).toHaveLength(1);
+      expect(mockFetch.mock.calls[0][0]).toBe(
+        "http://localhost:4000/api/documents/todos/t1"
+      );
+    });
+  });
+
+  describe("uploadTodoFile", () => {
+    it("sends POST FormData to todo files endpoint", async () => {
+      mockFetch.mockResolvedValueOnce(jsonResponse({ s3Key: "todo-file-key" }));
+      const file = new File(["data"], "attachment.pdf", { type: "application/pdf" });
+      const result = await api.uploadTodoFile("t1", file);
+      expect(result).toEqual({ s3Key: "todo-file-key" });
+      const [url, opts] = mockFetch.mock.calls[0];
+      expect(url).toBe("http://localhost:4000/api/documents/todos/t1/files");
+      expect(opts.method).toBe("POST");
+      expect(opts.body).toBeInstanceOf(FormData);
+    });
+  });
+
   describe("error handling", () => {
     it("throws on non-OK responses", async () => {
       mockFetch.mockResolvedValueOnce({
@@ -180,6 +259,19 @@ describe("api-client", () => {
         text: async () => "not found",
       });
       await expect(api.getReport("nope")).rejects.toThrow("API 404");
+    });
+
+    it("upload functions throw on non-OK responses", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 413,
+        statusText: "Payload Too Large",
+        text: async () => "file too large",
+      });
+      const file = new File(["data"], "big.csv", { type: "text/csv" });
+      await expect(api.uploadDataFile("abc", file)).rejects.toThrow(
+        "Upload failed 413"
+      );
     });
   });
 });

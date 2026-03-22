@@ -22,4 +22,24 @@ describe("StatusBadge", () => {
     render(<StatusBadge status="failed" />);
     expect(screen.getByText("Failed")).toBeDefined();
   });
+
+  it("renders analyzing status", () => {
+    render(<StatusBadge status="analyzing" />);
+    expect(screen.getByText("Analyzing")).toBeDefined();
+  });
+
+  it("renders generating status", () => {
+    render(<StatusBadge status="generating" />);
+    expect(screen.getByText("Generating")).toBeDefined();
+  });
+
+  it("renders reviewing status", () => {
+    render(<StatusBadge status="reviewing" />);
+    expect(screen.getByText("Reviewing")).toBeDefined();
+  });
+
+  it("renders revision as Revising", () => {
+    render(<StatusBadge status="revision" />);
+    expect(screen.getByText("Revising")).toBeDefined();
+  });
 });

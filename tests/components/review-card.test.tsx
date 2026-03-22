@@ -95,4 +95,88 @@ describe("ReviewCard", () => {
     expect(screen.getByText("82")).toBeDefined();
     expect(screen.getByText("/100")).toBeDefined();
   });
+
+  it("renders recommendations list when present", () => {
+    render(
+      <ReviewCard
+        review={makeReview({
+          recommendations: [
+            { text: "Add more charts" } as Record<string, unknown>,
+            { text: "Include historical data" } as Record<string, unknown>,
+          ],
+        })}
+      />
+    );
+    expect(screen.getByText("Recommendations")).toBeDefined();
+  });
+
+  it("JSON.stringifies object recommendations", () => {
+    render(
+      <ReviewCard
+        review={makeReview({
+          recommendations: [{ action: "add chart" }],
+        })}
+      />
+    );
+    expect(screen.getByText('{"action":"add chart"}')).toBeDefined();
+  });
+
+  it("shows 0 for null overallScore", () => {
+    render(
+      <ReviewCard
+        review={makeReview({ overallScore: null as unknown as string })}
+      />
+    );
+    expect(screen.getByText("0")).toBeDefined();
+  });
+
+  it("renders green progress bar for score >= 80%", () => {
+    const { container } = render(
+      <ReviewCard
+        review={makeReview({
+          report: {
+            criteriaName: "Test",
+            maxScore: 100,
+            scores: [
+              { category: "A", maxPoints: 100, awardedPoints: 85, feedback: "" },
+            ],
+          },
+        })}
+      />
+    );
+    expect(container.querySelector(".bg-green-500")).not.toBeNull();
+  });
+
+  it("renders red progress bar for score < 50%", () => {
+    const { container } = render(
+      <ReviewCard
+        review={makeReview({
+          report: {
+            criteriaName: "Test",
+            maxScore: 100,
+            scores: [
+              { category: "A", maxPoints: 100, awardedPoints: 30, feedback: "" },
+            ],
+          },
+        })}
+      />
+    );
+    expect(container.querySelector(".bg-red-500")).not.toBeNull();
+  });
+
+  it("renders no breakdowns when scores array is empty", () => {
+    const { container } = render(
+      <ReviewCard
+        review={makeReview({
+          report: {
+            criteriaName: "Test",
+            maxScore: 100,
+            scores: [],
+          },
+        })}
+      />
+    );
+    // No score breakdown divs
+    expect(container.querySelector(".bg-gray-200.rounded-full.h-2")).toBeNull();
+  });
 });
